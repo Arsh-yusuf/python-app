@@ -17,20 +17,20 @@ pipeline {
 
         stage('Gitleaks Scan') {
             steps {
-                sh 'docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact'
+                bat 'docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact'
             }
         }
 
         stage('Build') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME}:latest .'
+                bat 'docker build -t ${IMAGE_NAME}:latest .'
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
-                    sh '''
+                    bat '''
                         sonar-scanner \
                           -Dsonar.projectKey=python-app \
                           -Dsonar.sources=. \
@@ -43,13 +43,13 @@ pipeline {
 
         stage('Trivy Scan') {
             steps {
-                sh 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image ${IMAGE_NAME}:latest'
+                bat 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image ${IMAGE_NAME}:latest'
             }
         }
 
         stage('Push Image') {
             steps {
-                sh '''
+                bat '''
                     echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin
                     docker push ${IMAGE_NAME}:latest
                 '''
@@ -59,7 +59,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 sshagent(['SSH_KEY']) {
-                    sh '''
+                    bat '''
                         ssh -o StrictHostKeyChecking=no ec2-user@<your-server-ip> '
                             cd ~/app &&
                             docker compose down &&
@@ -72,4 +72,5 @@ pipeline {
         }
     }
 }
+
 
