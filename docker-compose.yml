@@ -1,0 +1,7 @@
+version: '3.9'
+services:
+  python_app:
+    image: python-app:latest
+    build: .
+    ports:
+      - "5000:5000"
