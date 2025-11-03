@@ -11,7 +11,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/your-username/python-app.git'
+                git branch: 'main', url: 'https://github.com/Arsh-yusuf/python-app.git'
             }
         }
 
@@ -72,3 +72,4 @@ pipeline {
         }
     }
 }
+
