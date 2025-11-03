@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         // ======= Credentials =======
-        SONARQUBE = credentials('SONAR_TOKEN')          // SonarQube token ID from Jenkins Credentials
+        SONARQUBE = credentials('SONARQUBE')          // SonarQube token ID from Jenkins Credentials
         DOCKERHUB = credentials('DOCKER_CREDS')          // DockerHub credentials ID from Jenkins Credentials
 
         // ======= Python Path & Image =======
@@ -101,4 +101,5 @@ stage('SonarQube Analysis') {
         }
     }
 }
+
 
