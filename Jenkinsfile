@@ -38,19 +38,20 @@ pipeline {
                 '''
             }
         }
-
-        stage('SonarQube Analysis') {
-            steps {
-                bat '''
-                echo === Running SonarQube analysis ===
-                sonar-scanner ^
-                  -Dsonar.projectKey=python-app ^
-                  -Dsonar.sources=. ^
-                  -Dsonar.host.url=http://localhost:9000 ^
-                  -Dsonar.login=%SONARQUBE%
-                '''
-            }
+        
+stage('SonarQube Analysis') {
+    steps {
+        withCredentials([string(credentialsId: 'SONARQUBE', variable: 'SONARQUBE')]) {
+            bat '''
+            "C:\\sonar-scanner\\bin\\sonar-scanner.bat" ^
+              -Dsonar.projectKey=python-app ^
+              -Dsonar.sources=. ^
+              -Dsonar.host.url=http://localhost:9000 ^
+              -Dsonar.login=%SONARQUBE%
+            '''
         }
+    }
+}
 
         stage('Trivy Scan') {
             steps {
@@ -100,3 +101,4 @@ pipeline {
         }
     }
 }
+
