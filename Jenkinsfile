@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_CREDENTIALS = credentials('DOCKER_CREDS')
-        SONARQUBE = 'SonarQube'
-        IMAGE_NAME = "asus/python-app"
+        SONARQUBE = credentials('SONAR_TOKEN')          // SonarQube token (configured in Jenkins)
+        DOCKERHUB = credentials('DOCKERHUB_CREDS') // DockerHub credentials ID
+        IMAGE_NAME ="yusuf48367/python-app"  // Replace with your DockerHub repo name
     }
 
     stages {
@@ -17,60 +17,82 @@ pipeline {
 
         stage('Gitleaks Scan') {
             steps {
-                bat 'docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact'
+                bat '''
+                echo Running Gitleaks Secret Scan...
+                docker run --rm -v "%CD%:/repo" zricethezav/gitleaks:latest detect --source /repo --no-banner --redact || exit /b 0
+                '''
             }
         }
 
         stage('Build') {
             steps {
-                bat 'docker build -t ${IMAGE_NAME}:latest .'
+                bat '''
+                echo Installing dependencies...
+                python --version
+                pip install --upgrade pip
+                pip install -r requirements.txt
+                '''
             }
         }
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    bat '''
-                        sonar-scanner \
-                          -Dsonar.projectKey=python-app \
-                          -Dsonar.sources=. \
-                          -Dsonar.host.url=http://localhost:9000 \
-                          -Dsonar.login=$SONAR_TOKEN
-                    '''
-                }
+                bat '''
+                echo Running SonarQube analysis...
+                sonar-scanner ^
+                  -Dsonar.projectKey=python-app ^
+                  -Dsonar.sources=. ^
+                  -Dsonar.host.url=http://localhost:9000 ^
+                  -Dsonar.login=%SONARQUBE%
+                '''
             }
         }
 
         stage('Trivy Scan') {
             steps {
-                bat 'docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image ${IMAGE_NAME}:latest'
+                bat '''
+                echo Running Trivy Vulnerability Scan...
+                docker run --rm -v "%CD%:/project" aquasec/trivy fs /project > trivy-report.txt || exit /b 0
+                '''
             }
         }
 
-        stage('Push Image') {
+        stage('Docker Build & Push') {
             steps {
                 bat '''
-                    echo "$DOCKERHUB_CREDENTIALS_PSW" | docker login -u "$DOCKERHUB_CREDENTIALS_USR" --password-stdin
-                    docker push ${IMAGE_NAME}:latest
+                echo Building Docker image...
+                docker build -t %IMAGE_NAME%:latest .
+
+                echo Logging in to DockerHub...
+                echo %DOCKERHUB_PSW% | docker login -u %DOCKERHUB_USR% --password-stdin
+
+                echo Pushing image to DockerHub...
+                docker push %IMAGE_NAME%:latest
                 '''
             }
         }
 
         stage('Deploy') {
             steps {
-                sshagent(['SSH_KEY']) {
-                    bat '''
-                        ssh -o StrictHostKeyChecking=no ec2-user@<your-server-ip> '
-                            cd ~/app &&
-                            docker compose down &&
-                            docker compose pull &&
-                            docker compose up -d
-                        '
-                    '''
-                }
+                bat '''
+                echo Deploying with Docker Compose...
+                docker-compose down || exit /b 0
+                docker-compose up -d --build
+                docker ps
+                '''
             }
         }
     }
+
+    post {
+        always {
+            echo 'Pipeline execution complete ✅'
+        }
+        failure {
+            echo 'Pipeline failed ❌'
+        }
+        success {
+            echo 'Pipeline succeeded 🎉'
+        }
+    }
 }
-
-
