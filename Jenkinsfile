@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         SONARQUBE = credentials('SONAR_TOKEN')          // SonarQube token (configured in Jenkins)
-        DOCKERHUB = credentials('DOCKERHUB_CREDS') // DockerHub credentials ID
+        DOCKERHUB = credentials('DOCKER_CREDS') // DockerHub credentials ID
         IMAGE_NAME ="yusuf48367/python-app"  // Replace with your DockerHub repo name
     }
 
@@ -96,3 +96,4 @@ pipeline {
         }
     }
 }
+
